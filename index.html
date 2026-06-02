@@ -364,15 +364,154 @@
       text-align: center; padding: 40px 20px; color: #555568;
     }
     .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ===== Login screen ===== */
+    .login-screen {
+      position: fixed; inset: 0;
+      background: #0a0a0f;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 500;
+      padding: 20px;
+      padding-top: calc(env(safe-area-inset-top) + 40px);
+    }
+    .login-screen.hidden { display: none; }
+    .login-logo {
+      font-size: 32px; font-weight: 900; letter-spacing: 3px;
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .login-sub { color: #8888a0; font-size: 14px; margin-bottom: 40px; }
+    .profile-picker {
+      display: flex; gap: 16px; margin-bottom: 32px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .profile-btn {
+      width: 130px; padding: 20px 12px;
+      background: #14141e; border: 2px solid #1f1f2e;
+      border-radius: 20px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .profile-btn.active {
+      border-color: #a855f7;
+      background: rgba(168,85,247,0.1);
+    }
+    .profile-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+    }
+    .profile-avatar.isaiah { background: linear-gradient(135deg, #6366f1, #a855f7); }
+    .profile-avatar.aliyah { background: linear-gradient(135deg, #f472b6, #fbbf24); }
+    .profile-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .profile-stats { font-size: 11px; color: #8888a0; }
+
+    .pin-section { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 280px; }
+    .pin-section.show { display: flex; }
+    .pin-prompt { color: #fff; font-size: 16px; margin-bottom: 16px; }
+    .pin-dots {
+      display: flex; gap: 14px; margin-bottom: 24px;
+    }
+    .pin-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid #2a2a3a;
+    }
+    .pin-dot.filled { background: #a855f7; border-color: #a855f7; }
+    .pin-dot.error { background: #ef4444; border-color: #ef4444; animation: shake 0.3s; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    .keypad {
+      display: grid; grid-template-columns: repeat(3, 70px);
+      gap: 12px;
+    }
+    .key {
+      height: 70px; border-radius: 50%;
+      background: #14141e; border: 1px solid #1f1f2e;
+      color: #fff; font-size: 26px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; user-select: none;
+    }
+    .key:active { background: #1f1f2e; transform: scale(0.95); }
+    .key.action { background: transparent; border: none; font-size: 14px; color: #8888a0; }
+    .login-back {
+      background: none; border: none; color: #8888a0;
+      margin-top: 24px; font-size: 14px; cursor: pointer;
+      padding: 8px 16px;
+    }
+
+    /* ===== Profile switch button in topbar ===== */
+    .profile-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: #14141e; border: 1px solid #1f1f2e;
+      padding: 4px 10px 4px 4px; border-radius: 999px;
+      cursor: pointer; font-size: 12px; color: #8888a0; font-weight: 600;
+    }
+    .profile-chip-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: #fff;
+    }
   </style>
 </head>
 <body>
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-logo">LOCK IN</div>
+    <div class="login-sub">Choose your profile</div>
+
+    <div class="profile-picker" id="profile-picker">
+      <div class="profile-btn" data-profile="isaiah" onclick="selectProfile('isaiah')">
+        <div class="profile-avatar isaiah">I</div>
+        <div class="profile-name">Isaiah</div>
+        <div class="profile-stats" id="isaiah-stats">OVR 60</div>
+      </div>
+      <div class="profile-btn" data-profile="aliyah" onclick="selectProfile('aliyah')">
+        <div class="profile-avatar aliyah">A</div>
+        <div class="profile-name">Aliyah</div>
+        <div class="profile-stats" id="aliyah-stats">OVR 60</div>
+      </div>
+    </div>
+
+    <div class="pin-section" id="pin-section">
+      <div class="pin-prompt" id="pin-prompt">Enter PIN</div>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="keypad" id="keypad">
+        <div class="key" data-num="1">1</div>
+        <div class="key" data-num="2">2</div>
+        <div class="key" data-num="3">3</div>
+        <div class="key" data-num="4">4</div>
+        <div class="key" data-num="5">5</div>
+        <div class="key" data-num="6">6</div>
+        <div class="key" data-num="7">7</div>
+        <div class="key" data-num="8">8</div>
+        <div class="key" data-num="9">9</div>
+        <div class="key action" onclick="clearPin()">Clear</div>
+        <div class="key" data-num="0">0</div>
+        <div class="key action" onclick="backspacePin()">⌫</div>
+      </div>
+      <button class="login-back" onclick="backToProfiles()">← Back to profiles</button>
+    </div>
+  </div>
   <div class="topbar">
     <div>
       <div class="greeting" id="greeting">Good morning</div>
       <div style="font-size: 20px; font-weight: 700;" id="username">Isaiah</div>
     </div>
-    <div class="streak"><span>🔥</span><span id="streak-count">0</span></div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="streak"><span>🔥</span><span id="streak-count">0</span></div>
+      <div class="profile-chip" onclick="logout()" title="Switch profile">
+        <div class="profile-chip-avatar" id="profile-chip-avatar">I</div>
+        <span>⇄</span>
+      </div>
+    </div>
   </div>
 
   <div class="ovr-section">
@@ -524,31 +663,158 @@
       {t: "Stay hungry. Stay foolish.", a: "Steve Jobs"}
     ];
 
-    let state = JSON.parse(localStorage.getItem("lockin_state") || "null") || {
-      habits: [
-        {id: 1, name: "Gym session", tag: "gym", xp: 20, done: false, lastDone: null},
-        {id: 2, name: "Drink 3L water", tag: "health", xp: 10, done: false, lastDone: null},
-        {id: 3, name: "No social media until lunch", tag: "focus", xp: 10, done: false, lastDone: null}
-      ],
-      goals: [
-        {id: 1, name: "BMW M4 deposit fund", current: 0, target: 5000}
-      ],
-      journal: [],
-      totalXp: 0,
-      streak: 0,
-      bestStreak: 0,
-      habitsCompleted: 0,
-      lastActiveDate: null,
-      completionHistory: {}, // date -> count
-      modalTag: "gym",
-      modalXp: 10,
-      filter: "all",
-      currentSection: "home"
+    // ========== PROFILES ==========
+    const PROFILES = {
+      isaiah: { name: "Isaiah", pin: "0000", avatar: "I", avatarClass: "isaiah" },
+      aliyah: { name: "Aliyah", pin: "1111", avatar: "A", avatarClass: "aliyah" }
     };
 
-    function save() { localStorage.setItem("lockin_state", JSON.stringify(state)); }
+    let currentProfile = null; // set after login
+    let state = null;          // loaded after login
+
+    function defaultState(profileKey) {
+      const isIsaiah = profileKey === "isaiah";
+      return {
+        habits: isIsaiah ? [
+          {id: 1, name: "Gym session", tag: "gym", xp: 20, done: false, lastDone: null},
+          {id: 2, name: "Drink 3L water", tag: "health", xp: 10, done: false, lastDone: null},
+          {id: 3, name: "No social media until lunch", tag: "focus", xp: 10, done: false, lastDone: null}
+        ] : [
+          {id: 1, name: "Workout", tag: "gym", xp: 20, done: false, lastDone: null},
+          {id: 2, name: "10k steps", tag: "health", xp: 10, done: false, lastDone: null},
+          {id: 3, name: "Read 10 pages", tag: "mind", xp: 10, done: false, lastDone: null}
+        ],
+        goals: isIsaiah ? [
+          {id: 1, name: "BMW M4 deposit fund", current: 0, target: 5000}
+        ] : [],
+        journal: [],
+        totalXp: 0,
+        streak: 0,
+        bestStreak: 0,
+        habitsCompleted: 0,
+        lastActiveDate: null,
+        completionHistory: {},
+        modalTag: "gym",
+        modalXp: 10,
+        filter: "all",
+        currentSection: "home"
+      };
+    }
+
+    function storageKey(profileKey) { return "lockin_state_" + profileKey; }
+
+    function loadState(profileKey) {
+      const raw = localStorage.getItem(storageKey(profileKey));
+      return raw ? JSON.parse(raw) : defaultState(profileKey);
+    }
+
+    function save() {
+      if (currentProfile) localStorage.setItem(storageKey(currentProfile), JSON.stringify(state));
+    }
 
     function todayStr() { return new Date().toISOString().slice(0,10); }
+
+    // ========== LOGIN ==========
+    let pinAttempt = "";
+    let selectedProfile = null;
+
+    function selectProfile(key) {
+      selectedProfile = key;
+      pinAttempt = "";
+      document.querySelectorAll(".profile-btn").forEach(b => b.classList.remove("active"));
+      document.querySelector(`[data-profile="${key}"]`).classList.add("active");
+      document.getElementById("profile-picker").style.display = "none";
+      document.getElementById("pin-section").classList.add("show");
+      document.getElementById("pin-prompt").textContent = "Enter PIN for " + PROFILES[key].name;
+      renderPinDots();
+    }
+
+    function backToProfiles() {
+      selectedProfile = null;
+      pinAttempt = "";
+      document.getElementById("profile-picker").style.display = "flex";
+      document.getElementById("pin-section").classList.remove("show");
+      document.querySelectorAll(".profile-btn").forEach(b => b.classList.remove("active"));
+    }
+
+    function renderPinDots(err) {
+      const dots = document.querySelectorAll("#pin-dots .pin-dot");
+      dots.forEach((d, i) => {
+        d.classList.remove("filled", "error");
+        if (err) d.classList.add("error");
+        else if (i < pinAttempt.length) d.classList.add("filled");
+      });
+    }
+
+    function clearPin() { pinAttempt = ""; renderPinDots(); }
+    function backspacePin() { pinAttempt = pinAttempt.slice(0, -1); renderPinDots(); }
+
+    function pressKey(num) {
+      if (pinAttempt.length >= 4) return;
+      pinAttempt += num;
+      renderPinDots();
+      if (pinAttempt.length === 4) {
+        setTimeout(checkPin, 150);
+      }
+    }
+
+    function checkPin() {
+      if (pinAttempt === PROFILES[selectedProfile].pin) {
+        loginAs(selectedProfile);
+      } else {
+        renderPinDots(true);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        setTimeout(() => { pinAttempt = ""; renderPinDots(); }, 500);
+      }
+    }
+
+    function loginAs(profileKey) {
+      currentProfile = profileKey;
+      state = loadState(profileKey);
+      localStorage.setItem("lockin_lastProfile", profileKey);
+      localStorage.setItem("lockin_lastLoginTime", String(Date.now()));
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("username").textContent = PROFILES[profileKey].name;
+      const chip = document.getElementById("profile-chip-avatar");
+      chip.textContent = PROFILES[profileKey].avatar;
+      chip.className = "profile-chip-avatar " + PROFILES[profileKey].avatarClass;
+      if (profileKey === "isaiah") chip.style.background = "linear-gradient(135deg, #6366f1, #a855f7)";
+      else chip.style.background = "linear-gradient(135deg, #f472b6, #fbbf24)";
+      dailyCheck();
+      render();
+    }
+
+    function logout() {
+      currentProfile = null;
+      state = null;
+      pinAttempt = "";
+      document.getElementById("login-screen").classList.remove("hidden");
+      backToProfiles();
+      updateProfileStatsPreview();
+    }
+
+    function updateProfileStatsPreview() {
+      // Show quick OVR preview on each profile button
+      for (const key of ["isaiah", "aliyah"]) {
+        const s = localStorage.getItem(storageKey(key));
+        if (s) {
+          try {
+            const data = JSON.parse(s);
+            const tierIdx = TIERS.findIndex(t => t.name === getTier(data.totalXp).cur.name);
+            const ovr = Math.min(99, 60 + tierIdx * 2);
+            document.getElementById(key + "-stats").textContent = "OVR " + ovr + " • " + (data.streak || 0) + "🔥";
+          } catch(e) {}
+        }
+      }
+    }
+
+    // Keypad event listener
+    document.getElementById("keypad").addEventListener("click", e => {
+      const key = e.target.closest(".key");
+      if (!key || key.classList.contains("action")) return;
+      const num = key.dataset.num;
+      if (num) pressKey(num);
+    });
 
     // ========== TIER + XP ==========
     function getTier(xp) {
@@ -896,9 +1162,16 @@
     }
 
     // ========== INIT ==========
-    dailyCheck();
     setQuote();
-    render();
+    updateProfileStatsPreview();
+
+    // Auto-login if last session was within 12 hours (so you don't PIN every reload)
+    const lastProfile = localStorage.getItem("lockin_lastProfile");
+    const lastLoginTime = parseInt(localStorage.getItem("lockin_lastLoginTime") || "0");
+    const HOURS_12 = 12 * 60 * 60 * 1000;
+    if (lastProfile && PROFILES[lastProfile] && (Date.now() - lastLoginTime < HOURS_12)) {
+      loginAs(lastProfile);
+    }
 
     // Service worker
     if ("serviceWorker" in navigator) {
