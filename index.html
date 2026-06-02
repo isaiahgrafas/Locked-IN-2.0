@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Lock In" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Lock In — Reset Your Life</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #0a0a0f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ===== Top bar ===== */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 8px;
+    }
+    .greeting { font-size: 14px; color: #8888a0; }
+    .streak {
+      display: flex; align-items: center; gap: 4px;
+      background: rgba(255,90,30,0.15);
+      color: #ff7a3a; padding: 6px 12px; border-radius: 999px;
+      font-weight: 600; font-size: 14px;
+    }
+
+    /* ===== OVR Ring ===== */
+    .ovr-section {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 20px 30px;
+    }
+    .ovr-ring {
+      position: relative; width: 220px; height: 220px;
+    }
+    .ovr-ring svg { transform: rotate(-90deg); }
+    .ovr-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .ovr-label { font-size: 12px; color: #8888a0; letter-spacing: 2px; }
+    .ovr-number { font-size: 64px; font-weight: 800; line-height: 1; margin: 4px 0; }
+    .ovr-tier {
+      font-size: 14px; font-weight: 700;
+      background: linear-gradient(90deg, #c084fc, #f472b6);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .xp-bar {
+      width: 100%; max-width: 280px;
+      height: 6px; background: #1a1a25;
+      border-radius: 999px; margin-top: 16px; overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7);
+      transition: width 0.5s ease;
+    }
+    .xp-text { font-size: 12px; color: #8888a0; margin-top: 6px; }
+
+    /* ===== Tab bar ===== */
+    .tabs {
+      display: flex; gap: 8px;
+      padding: 0 20px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 8px 16px;
+      background: #1a1a25;
+      color: #8888a0;
+      border: none; border-radius: 999px;
+      font-weight: 600; font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      color: #fff;
+    }
+
+    /* ===== Sections ===== */
+    .section { padding: 0 20px; display: none; }
+    .section.active { display: block; }
+    .section-title {
+      font-size: 13px; color: #8888a0;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin: 16px 0 12px;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      background: #14141e;
+      border: 1px solid #1f1f2e;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .habit-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .habit-check {
+      width: 32px; height: 32px;
+      border: 2px solid #2a2a3a;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .habit-check.done {
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      border-color: transparent;
+    }
+    .habit-check.done::after {
+      content: "✓"; color: #fff; font-weight: 800; font-size: 16px;
+    }
+    .habit-info { flex: 1; min-width: 0; }
+    .habit-name {
+      font-weight: 600; font-size: 15px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .habit-name.done {
+      color: #555568; text-decoration: line-through;
+    }
+    .habit-meta { display: flex; gap: 8px; margin-top: 4px; }
+    .tag {
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 999px;
+      background: #1f1f2e; color: #8888a0;
+      font-weight: 600;
+    }
+    .tag.gym { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+    .tag.health { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .tag.focus { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    .tag.mind { background: rgba(244,114,182,0.2); color: #f9a8d4; }
+    .tag.money { background: rgba(245,158,11,0.2); color: #fcd34d; }
+    .habit-xp {
+      font-size: 12px; color: #8888a0; font-weight: 600;
+    }
+    .habit-delete {
+      background: none; border: none; color: #555568;
+      font-size: 18px; cursor: pointer; padding: 4px 8px;
+    }
+
+    /* ===== Add button ===== */
+    .add-btn {
+      width: 100%;
+      background: #14141e;
+      border: 2px dashed #2a2a3a;
+      color: #8888a0;
+      padding: 14px;
+      border-radius: 16px;
+      font-weight: 600; font-size: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .add-btn:active { transform: scale(0.98); }
+
+    /* ===== Stats grid ===== */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #14141e; border: 1px solid #1f1f2e;
+      border-radius: 16px; padding: 14px;
+    }
+    .stat-label { font-size: 12px; color: #8888a0; }
+    .stat-value { font-size: 24px; font-weight: 800; margin-top: 4px; }
+
+    /* ===== Heatmap ===== */
+    .heatmap {
+      display: grid; grid-template-columns: repeat(14, 1fr);
+      gap: 4px; margin-top: 12px;
+    }
+    .heatmap-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      background: #1a1a25;
+    }
+    .heatmap-cell.l1 { background: rgba(99,102,241,0.3); }
+    .heatmap-cell.l2 { background: rgba(99,102,241,0.55); }
+    .heatmap-cell.l3 { background: rgba(99,102,241,0.8); }
+    .heatmap-cell.l4 { background: #a855f7; }
+
+    /* ===== Goals ===== */
+    .goal-card {
+      background: #14141e; border: 1px solid #1f1f2e;
+      border-radius: 16px; padding: 16px; margin-bottom: 10px;
+    }
+    .goal-header { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 10px; }
+    .goal-name { font-weight: 700; font-size: 16px; }
+    .goal-progress-bar {
+      height: 8px; background: #1a1a25; border-radius: 999px; overflow: hidden;
+    }
+    .goal-progress-fill {
+      height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7);
+    }
+    .goal-progress-text {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: #8888a0; margin-top: 6px;
+    }
+    .goal-controls { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-sm {
+      background: #1f1f2e; border: none; color: #fff;
+      padding: 6px 12px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; flex: 1;
+    }
+    .btn-sm.primary { background: linear-gradient(90deg, #6366f1, #a855f7); }
+
+    /* ===== Journal ===== */
+    .journal-textarea {
+      width: 100%; min-height: 140px;
+      background: #14141e; border: 1px solid #1f1f2e;
+      border-radius: 16px; padding: 14px;
+      color: #fff; font-family: inherit; font-size: 15px;
+      resize: vertical;
+      user-select: text; -webkit-user-select: text;
+    }
+    .journal-textarea:focus { outline: none; border-color: #6366f1; }
+    .journal-entry {
+      background: #14141e; border: 1px solid #1f1f2e;
+      border-radius: 16px; padding: 14px; margin-bottom: 10px;
+      user-select: text; -webkit-user-select: text;
+    }
+    .journal-date { font-size: 12px; color: #8888a0; margin-bottom: 6px; }
+    .journal-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+
+    /* ===== Breathing ===== */
+    .breath-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 30px 20px;
+    }
+    .breath-circle {
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #a855f7, #6366f1);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 4s ease-in-out;
+      box-shadow: 0 0 80px rgba(168,85,247,0.4);
+    }
+    .breath-text {
+      font-size: 22px; font-weight: 700; color: #fff;
+    }
+    .breath-instr { color: #8888a0; margin-top: 20px; font-size: 14px; }
+
+    /* ===== Bottom nav ===== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      max-width: 480px; margin: 0 auto;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid #1f1f2e;
+      display: flex; justify-content: space-around;
+      padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    .nav-btn {
+      background: none; border: none; color: #555568;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; font-size: 11px; cursor: pointer;
+      padding: 4px 12px; font-weight: 600;
+    }
+    .nav-btn.active { color: #a855f7; }
+    .nav-icon { font-size: 22px; }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: flex-end; justify-content: center;
+      z-index: 200;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      width: 100%; max-width: 480px;
+      background: #14141e;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal h2 { margin: 0 0 20px; font-size: 22px; }
+    .input {
+      width: 100%; background: #1a1a25; border: 1px solid #2a2a3a;
+      color: #fff; padding: 12px 14px; border-radius: 12px;
+      font-size: 15px; margin-bottom: 12px; font-family: inherit;
+      user-select: text; -webkit-user-select: text;
+    }
+    .input:focus { outline: none; border-color: #6366f1; }
+    .tag-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tag-opt {
+      padding: 8px 14px; border-radius: 999px;
+      background: #1a1a25; border: 1px solid #2a2a3a;
+      color: #8888a0; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .tag-opt.selected { border-color: #a855f7; color: #fff; background: rgba(168,85,247,0.2); }
+    .btn-primary {
+      width: 100%; background: linear-gradient(90deg, #6366f1, #a855f7);
+      border: none; color: #fff; padding: 14px;
+      border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-top: 8px;
+    }
+    .btn-secondary {
+      width: 100%; background: transparent; border: 1px solid #2a2a3a;
+      color: #8888a0; padding: 12px; border-radius: 12px;
+      font-size: 14px; cursor: pointer; margin-top: 8px;
+    }
+
+    /* ===== Quote card ===== */
+    .quote-card {
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15));
+      border: 1px solid rgba(168,85,247,0.3);
+      border-radius: 16px; padding: 18px;
+      margin-bottom: 20px;
+    }
+    .quote-text { font-size: 15px; font-style: italic; line-height: 1.5; }
+    .quote-author { font-size: 12px; color: #8888a0; margin-top: 8px; }
+
+    /* ===== Confetti / level-up ===== */
+    .levelup {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 300;
+      animation: fadeIn 0.3s;
+    }
+    .levelup.show { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .levelup-text {
+      font-size: 48px; font-weight: 900;
+      background: linear-gradient(90deg, #fbbf24, #f472b6, #a855f7);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+    .levelup-sub { color: #8888a0; margin-top: 12px; font-size: 16px; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: #555568;
+    }
+    .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <div class="greeting" id="greeting">Good morning</div>
+      <div style="font-size: 20px; font-weight: 700;" id="username">Isaiah</div>
+    </div>
+    <div class="streak"><span>🔥</span><span id="streak-count">0</span></div>
+  </div>
+
+  <div class="ovr-section">
+    <div class="ovr-ring">
+      <svg width="220" height="220" viewBox="0 0 220 220">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1" />
+            <stop offset="100%" stop-color="#a855f7" />
+          </linearGradient>
+        </defs>
+        <circle cx="110" cy="110" r="95" fill="none" stroke="#1a1a25" stroke-width="14" />
+        <circle id="ring" cx="110" cy="110" r="95" fill="none" stroke="url(#ringGrad)" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="596.9" stroke-dashoffset="596.9" />
+      </svg>
+      <div class="ovr-center">
+        <div class="ovr-label">OVR</div>
+        <div class="ovr-number" id="ovr-num">60</div>
+        <div class="ovr-tier" id="ovr-tier">Bronze I</div>
+      </div>
+    </div>
+    <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width: 0%"></div></div>
+    <div class="xp-text"><span id="xp-cur">0</span> / <span id="xp-need">100</span> XP</div>
+  </div>
+
+  <div class="tabs" id="tag-tabs">
+    <button class="tab active" data-tag="all">All</button>
+    <button class="tab" data-tag="gym">💪 Gym</button>
+    <button class="tab" data-tag="health">🥗 Health</button>
+    <button class="tab" data-tag="focus">🎯 Focus</button>
+    <button class="tab" data-tag="mind">🧠 Mind</button>
+    <button class="tab" data-tag="money">💰 Money</button>
+  </div>
+
+  <!-- ===== HOME / HABITS ===== -->
+  <div class="section active" id="sec-home">
+    <div class="section-title">Today's habits</div>
+    <div id="habit-list"></div>
+    <button class="add-btn" onclick="openHabitModal()">+ Add habit</button>
+  </div>
+
+  <!-- ===== GOALS ===== -->
+  <div class="section" id="sec-goals">
+    <div class="section-title">Your goals</div>
+    <div id="goal-list"></div>
+    <button class="add-btn" onclick="openGoalModal()">+ Add goal</button>
+  </div>
+
+  <!-- ===== STATS ===== -->
+  <div class="section" id="sec-stats">
+    <div class="section-title">Your progress</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Current streak</div><div class="stat-value" id="s-streak">0</div></div>
+      <div class="stat-card"><div class="stat-label">Best streak</div><div class="stat-value" id="s-best">0</div></div>
+      <div class="stat-card"><div class="stat-label">Habits done</div><div class="stat-value" id="s-done">0</div></div>
+      <div class="stat-card"><div class="stat-label">Total XP</div><div class="stat-value" id="s-xp">0</div></div>
+    </div>
+    <div class="section-title">Last 14 weeks</div>
+    <div class="heatmap" id="heatmap"></div>
+  </div>
+
+  <!-- ===== MIND ===== -->
+  <div class="section" id="sec-mind">
+    <div class="quote-card">
+      <div class="quote-text" id="q-text">"The successful warrior is the average man, with laser-like focus."</div>
+      <div class="quote-author" id="q-author">— Bruce Lee</div>
+    </div>
+    <div class="section-title">Journal</div>
+    <textarea class="journal-textarea" id="journal-input" placeholder="What's on your mind today?"></textarea>
+    <button class="btn-primary" onclick="saveJournal()">Save entry (+15 XP)</button>
+    <div class="section-title">Breathing</div>
+    <div class="breath-container card">
+      <div class="breath-circle" id="breath-circle"><div class="breath-text" id="breath-text">Tap to start</div></div>
+      <div class="breath-instr" id="breath-instr">4-7-8 breathing • Tap circle</div>
+    </div>
+    <div class="section-title">Recent entries</div>
+    <div id="journal-list"></div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-sec="home"><span class="nav-icon">🏠</span><span>Home</span></button>
+    <button class="nav-btn" data-sec="goals"><span class="nav-icon">🎯</span><span>Goals</span></button>
+    <button class="nav-btn" data-sec="stats"><span class="nav-icon">📊</span><span>Stats</span></button>
+    <button class="nav-btn" data-sec="mind"><span class="nav-icon">🧘</span><span>Mind</span></button>
+  </div>
+
+  <!-- ===== ADD HABIT MODAL ===== -->
+  <div class="modal-overlay" id="habit-modal">
+    <div class="modal">
+      <h2>New habit</h2>
+      <input class="input" id="habit-input" placeholder="e.g. Gym workout, drink 3L water…" />
+      <div style="font-size: 13px; color: #8888a0; margin-bottom: 8px;">Category</div>
+      <div class="tag-picker" id="tag-picker">
+        <div class="tag-opt selected" data-tag="gym">💪 Gym</div>
+        <div class="tag-opt" data-tag="health">🥗 Health</div>
+        <div class="tag-opt" data-tag="focus">🎯 Focus</div>
+        <div class="tag-opt" data-tag="mind">🧠 Mind</div>
+        <div class="tag-opt" data-tag="money">💰 Money</div>
+      </div>
+      <div style="font-size: 13px; color: #8888a0; margin-bottom: 8px;">XP value</div>
+      <div class="tag-picker" id="xp-picker">
+        <div class="tag-opt" data-xp="5">Minor +5</div>
+        <div class="tag-opt selected" data-xp="10">Standard +10</div>
+        <div class="tag-opt" data-xp="20">Major +20</div>
+      </div>
+      <button class="btn-primary" onclick="saveHabit()">Add habit</button>
+      <button class="btn-secondary" onclick="closeModal('habit-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ===== ADD GOAL MODAL ===== -->
+  <div class="modal-overlay" id="goal-modal">
+    <div class="modal">
+      <h2>New goal</h2>
+      <input class="input" id="goal-input" placeholder="e.g. Save $5000 for M4 deposit" />
+      <input class="input" id="goal-target" type="number" placeholder="Target (e.g. 100)" />
+      <button class="btn-primary" onclick="saveGoal()">Add goal</button>
+      <button class="btn-secondary" onclick="closeModal('goal-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <div class="levelup" id="levelup">
+    <div class="levelup-text">LEVEL UP!</div>
+    <div class="levelup-sub" id="levelup-sub">You're now Silver II</div>
+  </div>
+
+  <script>
+    // ========== STATE ==========
+    const TIERS = [
+      {min: 0, name: "Bronze I"}, {min: 100, name: "Bronze II"}, {min: 250, name: "Bronze III"},
+      {min: 450, name: "Silver I"}, {min: 700, name: "Silver II"}, {min: 1000, name: "Silver III"},
+      {min: 1400, name: "Gold I"}, {min: 1900, name: "Gold II"}, {min: 2500, name: "Gold III"},
+      {min: 3200, name: "Platinum I"}, {min: 4000, name: "Platinum II"}, {min: 5000, name: "Platinum III"},
+      {min: 6500, name: "Diamond I"}, {min: 8500, name: "Diamond II"}, {min: 11000, name: "Diamond III"},
+      {min: 14000, name: "Opal I"}, {min: 18000, name: "Opal II"}, {min: 22000, name: "Opal III"},
+      {min: 28000, name: "Legend"}
+    ];
+    const QUOTES = [
+      {t: "The successful warrior is the average man, with laser-like focus.", a: "Bruce Lee"},
+      {t: "Discipline equals freedom.", a: "Jocko Willink"},
+      {t: "We are what we repeatedly do. Excellence is a habit.", a: "Aristotle"},
+      {t: "The pain of discipline weighs ounces, the pain of regret weighs tons.", a: "Jim Rohn"},
+      {t: "You don't rise to the level of your goals. You fall to the level of your systems.", a: "James Clear"},
+      {t: "If it doesn't challenge you, it doesn't change you.", a: "Fred DeVito"},
+      {t: "Don't watch the clock; do what it does. Keep going.", a: "Sam Levenson"},
+      {t: "The man who moves a mountain begins by carrying away small stones.", a: "Confucius"},
+      {t: "Success is the sum of small efforts repeated day in and day out.", a: "Robert Collier"},
+      {t: "Stay hungry. Stay foolish.", a: "Steve Jobs"}
+    ];
+
+    let state = JSON.parse(localStorage.getItem("lockin_state") || "null") || {
+      habits: [
+        {id: 1, name: "Gym session", tag: "gym", xp: 20, done: false, lastDone: null},
+        {id: 2, name: "Drink 3L water", tag: "health", xp: 10, done: false, lastDone: null},
+        {id: 3, name: "No social media until lunch", tag: "focus", xp: 10, done: false, lastDone: null}
+      ],
+      goals: [
+        {id: 1, name: "BMW M4 deposit fund", current: 0, target: 5000}
+      ],
+      journal: [],
+      totalXp: 0,
+      streak: 0,
+      bestStreak: 0,
+      habitsCompleted: 0,
+      lastActiveDate: null,
+      completionHistory: {}, // date -> count
+      modalTag: "gym",
+      modalXp: 10,
+      filter: "all",
+      currentSection: "home"
+    };
+
+    function save() { localStorage.setItem("lockin_state", JSON.stringify(state)); }
+
+    function todayStr() { return new Date().toISOString().slice(0,10); }
+
+    // ========== TIER + XP ==========
+    function getTier(xp) {
+      let cur = TIERS[0], next = TIERS[1];
+      for (let i = 0; i < TIERS.length; i++) {
+        if (xp >= TIERS[i].min) { cur = TIERS[i]; next = TIERS[i+1] || TIERS[i]; }
+      }
+      return {cur, next};
+    }
+    function calcOvr(xp) {
+      // Map XP across tiers to 60-99
+      const tierIdx = TIERS.findIndex(t => t.name === getTier(xp).cur.name);
+      return Math.min(99, 60 + tierIdx * 2 + Math.floor(Math.random()*0));
+    }
+
+    // ========== RENDER ==========
+    function render() {
+      // OVR
+      const {cur, next} = getTier(state.totalXp);
+      const prevMin = cur.min;
+      const nextMin = next.min === cur.min ? cur.min + 1000 : next.min;
+      const progress = (state.totalXp - prevMin) / (nextMin - prevMin);
+      const ovr = Math.min(99, 60 + TIERS.findIndex(t => t.name === cur.name) * 2);
+
+      document.getElementById("ovr-num").textContent = ovr;
+      document.getElementById("ovr-tier").textContent = cur.name;
+      document.getElementById("xp-cur").textContent = state.totalXp - prevMin;
+      document.getElementById("xp-need").textContent = nextMin - prevMin;
+      document.getElementById("xp-fill").style.width = (progress * 100) + "%";
+
+      const ring = document.getElementById("ring");
+      const circ = 596.9;
+      ring.style.strokeDashoffset = circ * (1 - progress);
+
+      document.getElementById("streak-count").textContent = state.streak;
+
+      // Greeting
+      const hr = new Date().getHours();
+      document.getElementById("greeting").textContent =
+        hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+
+      // Habits
+      const list = document.getElementById("habit-list");
+      const filtered = state.habits.filter(h => state.filter === "all" || h.tag === state.filter);
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div>No habits yet. Add one to start.</div></div>';
+      } else {
+        list.innerHTML = filtered.map(h => `
+          <div class="card">
+            <div class="habit-row">
+              <div class="habit-check ${h.done ? 'done' : ''}" onclick="toggleHabit(${h.id})"></div>
+              <div class="habit-info">
+                <div class="habit-name ${h.done ? 'done' : ''}">${escapeHtml(h.name)}</div>
+                <div class="habit-meta">
+                  <span class="tag ${h.tag}">${tagLabel(h.tag)}</span>
+                  <span class="habit-xp">+${h.xp} XP</span>
+                </div>
+              </div>
+              <button class="habit-delete" onclick="deleteHabit(${h.id})">×</button>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      // Goals
+      const goalList = document.getElementById("goal-list");
+      if (state.goals.length === 0) {
+        goalList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><div>No goals yet. Set one.</div></div>';
+      } else {
+        goalList.innerHTML = state.goals.map(g => {
+          const pct = Math.min(100, (g.current / g.target) * 100);
+          return `
+            <div class="goal-card">
+              <div class="goal-header">
+                <div class="goal-name">${escapeHtml(g.name)}</div>
+                <button class="habit-delete" onclick="deleteGoal(${g.id})">×</button>
+              </div>
+              <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${pct}%"></div></div>
+              <div class="goal-progress-text"><span>${g.current} / ${g.target}</span><span>${Math.round(pct)}%</span></div>
+              <div class="goal-controls">
+                <button class="btn-sm" onclick="adjustGoal(${g.id}, -1)">−1</button>
+                <button class="btn-sm primary" onclick="adjustGoal(${g.id}, 1)">+1</button>
+                <button class="btn-sm" onclick="adjustGoal(${g.id}, 10)">+10</button>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      // Stats
+      document.getElementById("s-streak").textContent = state.streak;
+      document.getElementById("s-best").textContent = state.bestStreak;
+      document.getElementById("s-done").textContent = state.habitsCompleted;
+      document.getElementById("s-xp").textContent = state.totalXp;
+
+      // Heatmap (14 weeks x 7 days = 98 cells, but we show 14 cols × 7 rows in flat 14-wide grid for compactness)
+      const heat = document.getElementById("heatmap");
+      const cells = [];
+      const today = new Date();
+      for (let i = 97; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = d.toISOString().slice(0,10);
+        const count = state.completionHistory[key] || 0;
+        let cls = "";
+        if (count >= 5) cls = "l4";
+        else if (count >= 3) cls = "l3";
+        else if (count >= 2) cls = "l2";
+        else if (count >= 1) cls = "l1";
+        cells.push(`<div class="heatmap-cell ${cls}" title="${key}: ${count}"></div>`);
+      }
+      heat.innerHTML = cells.join("");
+
+      // Journal
+      const jlist = document.getElementById("journal-list");
+      if (state.journal.length === 0) {
+        jlist.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📓</div><div>No entries yet.</div></div>';
+      } else {
+        jlist.innerHTML = state.journal.slice(-10).reverse().map(e => `
+          <div class="journal-entry">
+            <div class="journal-date">${e.date}</div>
+            <div class="journal-text">${escapeHtml(e.text)}</div>
+          </div>`).join("");
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function tagLabel(t) {
+      return {gym:"💪 Gym",health:"🥗 Health",focus:"🎯 Focus",mind:"🧠 Mind",money:"💰 Money"}[t] || t;
+    }
+
+    // ========== HABIT ACTIONS ==========
+    function toggleHabit(id) {
+      const h = state.habits.find(x => x.id === id);
+      if (!h) return;
+      const today = todayStr();
+      if (h.done) {
+        h.done = false;
+        state.totalXp = Math.max(0, state.totalXp - h.xp);
+        state.habitsCompleted = Math.max(0, state.habitsCompleted - 1);
+        state.completionHistory[today] = Math.max(0, (state.completionHistory[today] || 0) - 1);
+      } else {
+        const oldTier = getTier(state.totalXp).cur.name;
+        h.done = true;
+        h.lastDone = today;
+        state.totalXp += h.xp;
+        state.habitsCompleted += 1;
+        state.completionHistory[today] = (state.completionHistory[today] || 0) + 1;
+        updateStreak();
+        const newTier = getTier(state.totalXp).cur.name;
+        if (oldTier !== newTier) showLevelUp(newTier);
+        if (navigator.vibrate) navigator.vibrate(30);
+      }
+      save(); render();
+    }
+
+    function updateStreak() {
+      const today = todayStr();
+      if (state.lastActiveDate === today) return;
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const yStr = yesterday.toISOString().slice(0,10);
+      if (state.lastActiveDate === yStr) state.streak += 1;
+      else state.streak = 1;
+      state.bestStreak = Math.max(state.bestStreak, state.streak);
+      state.lastActiveDate = today;
+    }
+
+    function deleteHabit(id) {
+      if (!confirm("Delete this habit?")) return;
+      state.habits = state.habits.filter(h => h.id !== id);
+      save(); render();
+    }
+
+    // ========== MODAL ==========
+    function openHabitModal() {
+      document.getElementById("habit-input").value = "";
+      document.getElementById("habit-modal").classList.add("show");
+    }
+    function openGoalModal() {
+      document.getElementById("goal-input").value = "";
+      document.getElementById("goal-target").value = "";
+      document.getElementById("goal-modal").classList.add("show");
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove("show"); }
+
+    function saveHabit() {
+      const name = document.getElementById("habit-input").value.trim();
+      if (!name) return;
+      state.habits.push({
+        id: Date.now(),
+        name,
+        tag: state.modalTag,
+        xp: state.modalXp,
+        done: false,
+        lastDone: null
+      });
+      save(); closeModal("habit-modal"); render();
+    }
+
+    function saveGoal() {
+      const name = document.getElementById("goal-input").value.trim();
+      const target = parseInt(document.getElementById("goal-target").value) || 100;
+      if (!name) return;
+      state.goals.push({id: Date.now(), name, current: 0, target});
+      save(); closeModal("goal-modal"); render();
+    }
+    function deleteGoal(id) {
+      if (!confirm("Delete this goal?")) return;
+      state.goals = state.goals.filter(g => g.id !== id);
+      save(); render();
+    }
+    function adjustGoal(id, delta) {
+      const g = state.goals.find(x => x.id === id);
+      if (!g) return;
+      const oldDone = g.current >= g.target;
+      g.current = Math.max(0, g.current + delta);
+      if (!oldDone && g.current >= g.target) {
+        const oldTier = getTier(state.totalXp).cur.name;
+        state.totalXp += 100;
+        const newTier = getTier(state.totalXp).cur.name;
+        if (oldTier !== newTier) showLevelUp(newTier);
+        else showLevelUp("Goal complete!", "+100 XP");
+      }
+      save(); render();
+    }
+
+    // ========== JOURNAL ==========
+    function saveJournal() {
+      const t = document.getElementById("journal-input").value.trim();
+      if (!t) return;
+      state.journal.push({date: new Date().toLocaleDateString("en-NZ", {weekday:"short", day:"numeric", month:"short"}), text: t});
+      const oldTier = getTier(state.totalXp).cur.name;
+      state.totalXp += 15;
+      state.completionHistory[todayStr()] = (state.completionHistory[todayStr()] || 0) + 1;
+      const newTier = getTier(state.totalXp).cur.name;
+      if (oldTier !== newTier) showLevelUp(newTier);
+      document.getElementById("journal-input").value = "";
+      save(); render();
+    }
+
+    // ========== LEVEL UP ==========
+    function showLevelUp(tierName, sub) {
+      const el = document.getElementById("levelup");
+      document.getElementById("levelup-sub").textContent = sub || ("You're now " + tierName);
+      el.classList.add("show");
+      if (navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+      setTimeout(() => el.classList.remove("show"), 2500);
+    }
+
+    // ========== BREATHING ==========
+    let breathRunning = false;
+    function startBreath() {
+      if (breathRunning) return;
+      breathRunning = true;
+      const circle = document.getElementById("breath-circle");
+      const text = document.getElementById("breath-text");
+      const instr = document.getElementById("breath-instr");
+      let cycle = 0;
+      function step() {
+        if (cycle >= 4) {
+          breathRunning = false;
+          text.textContent = "Tap to start";
+          instr.textContent = "4-7-8 breathing • Tap circle";
+          circle.style.transform = "scale(1)";
+          return;
+        }
+        text.textContent = "Inhale";
+        circle.style.transitionDuration = "4s";
+        circle.style.transform = "scale(1.3)";
+        setTimeout(() => {
+          text.textContent = "Hold";
+          setTimeout(() => {
+            text.textContent = "Exhale";
+            circle.style.transitionDuration = "8s";
+            circle.style.transform = "scale(1)";
+            setTimeout(() => { cycle++; step(); }, 8000);
+          }, 7000);
+        }, 4000);
+      }
+      instr.textContent = "Breathing...";
+      step();
+    }
+    document.getElementById("breath-circle").addEventListener("click", startBreath);
+
+    // ========== TABS / NAV ==========
+    document.getElementById("tag-tabs").addEventListener("click", e => {
+      const btn = e.target.closest(".tab");
+      if (!btn) return;
+      document.querySelectorAll("#tag-tabs .tab").forEach(t => t.classList.remove("active"));
+      btn.classList.add("active");
+      state.filter = btn.dataset.tag;
+      render();
+    });
+
+    document.querySelectorAll(".bottom-nav .nav-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+        document.getElementById("sec-" + btn.dataset.sec).classList.add("active");
+        document.getElementById("tag-tabs").style.display = btn.dataset.sec === "home" ? "flex" : "none";
+        state.currentSection = btn.dataset.sec;
+      });
+    });
+
+    document.getElementById("tag-picker").addEventListener("click", e => {
+      const opt = e.target.closest(".tag-opt"); if (!opt) return;
+      document.querySelectorAll("#tag-picker .tag-opt").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      state.modalTag = opt.dataset.tag;
+    });
+    document.getElementById("xp-picker").addEventListener("click", e => {
+      const opt = e.target.closest(".tag-opt"); if (!opt) return;
+      document.querySelectorAll("#xp-picker .tag-opt").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      state.modalXp = parseInt(opt.dataset.xp);
+    });
+
+    // ========== DAILY RESET ==========
+    function dailyCheck() {
+      const today = todayStr();
+      const last = state.lastResetDate;
+      if (last !== today) {
+        state.habits.forEach(h => { h.done = false; });
+        state.lastResetDate = today;
+        // streak break check
+        if (state.lastActiveDate) {
+          const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+          const yStr = yesterday.toISOString().slice(0,10);
+          if (state.lastActiveDate !== yStr && state.lastActiveDate !== today) {
+            state.streak = 0;
+          }
+        }
+        save();
+      }
+    }
+
+    // ========== QUOTE OF DAY ==========
+    function setQuote() {
+      const day = Math.floor(new Date().getTime() / 86400000);
+      const q = QUOTES[day % QUOTES.length];
+      document.getElementById("q-text").textContent = `"${q.t}"`;
+      document.getElementById("q-author").textContent = "— " + q.a;
+    }
+
+    // ========== INIT ==========
+    dailyCheck();
+    setQuote();
+    render();
+
+    // Service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(()=>{});
+    }
+  </script>
+</body>
+</html>
