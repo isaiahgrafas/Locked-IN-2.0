@@ -712,7 +712,20 @@
       if (currentProfile) localStorage.setItem(storageKey(currentProfile), JSON.stringify(state));
     }
 
-    function todayStr() { return new Date().toISOString().slice(0,10); }
+    function todayStr() {
+      // Use LOCAL date (so reset happens at YOUR midnight, not UTC midnight)
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+    function localDateStr(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
 
     // ========== LOGIN ==========
     let pinAttempt = "";
@@ -916,7 +929,7 @@
       for (let i = 97; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const key = d.toISOString().slice(0,10);
+        const key = localDateStr(d);
         const count = state.completionHistory[key] || 0;
         let cls = "";
         if (count >= 5) cls = "l4";
@@ -976,7 +989,7 @@
       const today = todayStr();
       if (state.lastActiveDate === today) return;
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-      const yStr = yesterday.toISOString().slice(0,10);
+      const yStr = localDateStr(yesterday);
       if (state.lastActiveDate === yStr) state.streak += 1;
       else state.streak = 1;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
@@ -1136,22 +1149,34 @@
 
     // ========== DAILY RESET ==========
     function dailyCheck() {
+      if (!state) return;
       const today = todayStr();
       const last = state.lastResetDate;
       if (last !== today) {
+        // New day → reset all habit ticks
         state.habits.forEach(h => { h.done = false; });
         state.lastResetDate = today;
-        // streak break check
+        // Streak break check (local time)
         if (state.lastActiveDate) {
           const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-          const yStr = yesterday.toISOString().slice(0,10);
+          const yStr = localDateStr(yesterday);
           if (state.lastActiveDate !== yStr && state.lastActiveDate !== today) {
             state.streak = 0;
           }
         }
         save();
+        // Re-render if we're inside the app (logged in)
+        if (currentProfile) render();
       }
     }
+
+    // Run dailyCheck every minute so it catches midnight even if app is open
+    setInterval(dailyCheck, 60 * 1000);
+
+    // Also run when the tab becomes visible again (waking phone, switching back to app)
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) dailyCheck();
+    });
 
     // ========== QUOTE OF DAY ==========
     function setQuote() {
