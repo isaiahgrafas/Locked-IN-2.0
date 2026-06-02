@@ -702,14 +702,77 @@
     }
 
     function storageKey(profileKey) { return "lockin_state_" + profileKey; }
+    function backupKey(profileKey) { return "lockin_backup_" + profileKey; }
+    function autosaveKey(profileKey) { return "lockin_autosave_" + profileKey; }
 
     function loadState(profileKey) {
-      const raw = localStorage.getItem(storageKey(profileKey));
-      return raw ? JSON.parse(raw) : defaultState(profileKey);
+      // Try main key first
+      let raw = localStorage.getItem(storageKey(profileKey));
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (data && typeof data.totalXp === "number") return data;
+        } catch(e) {}
+      }
+
+      // Fallback 1: backup key
+      raw = localStorage.getItem(backupKey(profileKey));
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (data && typeof data.totalXp === "number") {
+            console.log("Restored from backup for", profileKey);
+            return data;
+          }
+        } catch(e) {}
+      }
+
+      // Fallback 2: autosave key
+      raw = localStorage.getItem(autosaveKey(profileKey));
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (data && typeof data.totalXp === "number") {
+            console.log("Restored from autosave for", profileKey);
+            return data;
+          }
+        } catch(e) {}
+      }
+
+      // Migration: old single-profile data (only for Isaiah, only once)
+      if (profileKey === "isaiah") {
+        const oldRaw = localStorage.getItem("lockin_state");
+        if (oldRaw) {
+          try {
+            const oldData = JSON.parse(oldRaw);
+            if (oldData && typeof oldData.totalXp === "number") {
+              localStorage.setItem(storageKey("isaiah"), oldRaw);
+              console.log("Migrated old data:", oldData.totalXp, "XP");
+              return oldData;
+            }
+          } catch(e) {}
+        }
+      }
+
+      return defaultState(profileKey);
     }
 
     function save() {
-      if (currentProfile) localStorage.setItem(storageKey(currentProfile), JSON.stringify(state));
+      if (!currentProfile || !state) return;
+      const serialized = JSON.stringify(state);
+      try {
+        // Triple-save: main + backup + autosave (rotating)
+        localStorage.setItem(storageKey(currentProfile), serialized);
+        localStorage.setItem(backupKey(currentProfile), serialized);
+        localStorage.setItem(autosaveKey(currentProfile), serialized);
+      } catch(e) {
+        console.error("Save failed!", e);
+        // Try to alert user once if storage is full
+        if (e.name === "QuotaExceededError" && !window._storageWarned) {
+          window._storageWarned = true;
+          alert("Storage is full. Try exporting your data and clearing old backups.");
+        }
+      }
     }
 
     function todayStr() {
